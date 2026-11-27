@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 
 data class PhoneUiState(
     val joined: Boolean = false,
+    val myName: String = "",
     val lobbyPlayers: List<String> = emptyList(),
     val hand: List<Card> = emptyList(),
     val gameStarted: Boolean = false,
@@ -34,6 +35,9 @@ class PhoneViewModel : ViewModel() {
     private val _state = MutableStateFlow(PhoneUiState())
     val state: StateFlow<PhoneUiState> = _state.asStateFlow()
 
+    // Hay una jugada enviada y el servidor aún no responde.
+    private var pendingMove = false
+
     init {
         viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
             connection.messages.collect { onMessage(it) }
@@ -44,10 +48,23 @@ class PhoneViewModel : ViewModel() {
     private fun onMessage(message: ServerMessage) {
         when (message) {
             is ServerMessage.Lobby -> _state.update { it.copy(lobbyPlayers = message.players) }
-            is ServerMessage.Hand -> _state.update { it.copy(hand = message.cards, gameStarted = true) }
-            ServerMessage.YourTurn -> _state.update { it.copy(isMyTurn = true) }
-            is ServerMessage.Error -> _state.update { it.copy(error = message.message) }
-            is ServerMessage.GameOver -> _state.update { it.copy(winner = message.winner, isMyTurn = false) }
+            is ServerMessage.Hand -> {
+                pendingMove = false
+                _state.update { it.copy(hand = message.cards, gameStarted = true) }
+            }
+            ServerMessage.YourTurn -> {
+                pendingMove = false
+                _state.update { it.copy(isMyTurn = true) }
+            }
+            is ServerMessage.Error -> {
+                // Si el servidor rechazó mi jugada, sigue siendo mi turno.
+                val retry = pendingMove
+                pendingMove = false
+                _state.update { it.copy(error = message.message, isMyTurn = it.isMyTurn || retry) }
+            }
+            is ServerMessage.GameOver -> _state.update {
+                it.copy(winner = message.winner, isMyTurn = false)
+            }
             is ServerMessage.State -> Unit // solo lo usa la TV
         }
     }
@@ -56,17 +73,22 @@ class PhoneViewModel : ViewModel() {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
         connection.send(ClientMessage.Join(trimmed, Role.PHONE))
-        _state.update { it.copy(joined = true) }
+        _state.update { it.copy(joined = true, myName = trimmed) }
     }
 
     fun start() = connection.send(ClientMessage.Start)
 
     fun play(card: Card, chosenColor: CardColor? = null) {
+        pendingMove = true
         connection.send(ClientMessage.Play(card.id, chosenColor))
         _state.update { it.copy(isMyTurn = false) }
     }
 
-    fun draw() = connection.send(ClientMessage.Draw)
+    fun draw() {
+        pendingMove = true
+        connection.send(ClientMessage.Draw)
+        _state.update { it.copy(isMyTurn = false) }
+    }
 
     fun sayUno() = connection.send(ClientMessage.Uno)
 
