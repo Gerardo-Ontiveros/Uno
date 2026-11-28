@@ -7,11 +7,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,13 +22,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.common.model.Card
 import com.example.common.model.CardColor
-import com.example.common.model.CardValue
 
 @Composable
 fun CardView(
@@ -39,10 +40,10 @@ fun CardView(
 ) {
     val shape = RoundedCornerShape(width * 0.14f)
     val base = card.color.toColor()
-    val label = card.value.label()
     val isWild = card.color == CardColor.WILD
-    val cornerColor = if (card.color == CardColor.YELLOW) PurinColors.BrownDark else Color.White
-    val numberColor = if (card.color == CardColor.YELLOW) Color(0xFFD99A00) else base
+    val ring = width * 0.035f
+    val inner = lerp(base, Color.White, 0.5f)
+    val cell = width * 0.0286f
 
     Box(
         modifier = modifier
@@ -57,73 +58,56 @@ fun CardView(
                 else Modifier
             )
     ) {
+        // Óvalo inclinado: aro blanco y, adentro, un tono más claro del color de la carta.
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
-                .size(width * 0.74f, width * 1.12f)
-                .rotate(-24f)
+                .size(width * 0.80f, width * 1.22f)
+                .rotate(28f)
                 .clip(RoundedCornerShape(50))
                 .background(Color.White)
         ) {
-            if (isWild) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Row(modifier = Modifier.weight(1f)) {
-                        Quarter(PurinColors.Red)
-                        Quarter(PurinColors.Blue)
-                    }
-                    Row(modifier = Modifier.weight(1f)) {
-                        Quarter(PurinColors.Green)
-                        Quarter(PurinColors.Butter)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(ring)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (isWild) Color.White else inner)
+            ) {
+                if (isWild) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Row(modifier = Modifier.weight(1f)) {
+                            Quarter(PurinColors.Red)
+                            Quarter(PurinColors.Blue)
+                        }
+                        Row(modifier = Modifier.weight(1f)) {
+                            Quarter(PurinColors.Green)
+                            Quarter(PurinColors.Butter)
+                        }
                     }
                 }
             }
         }
 
-        if (isWild) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(width * 0.4f)
-                    .clip(CircleShape)
-                    .background(PurinColors.Wild)
-                    .border(width * 0.02f, Color.White, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                PurinText(
-                    text = label,
-                    size = (width.value * 0.2f).sp,
-                    weight = FontWeight.Black,
-                    color = Color.White
-                )
-            }
-        } else {
-            PurinText(
-                text = label,
-                modifier = Modifier.align(Alignment.Center),
-                size = (width.value * 0.4f).sp,
-                weight = FontWeight.Black,
-                color = numberColor
-            )
-        }
+        PurinCharacter(
+            size = width * 0.72f,
+            modifier = Modifier.align(Alignment.Center)
+        )
 
-        PurinText(
-            text = label,
+        PixelLabel(
+            value = card.value,
+            cell = cell,
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(start = width * 0.1f, top = width * 0.05f),
-            size = (width.value * 0.17f).sp,
-            weight = FontWeight.Bold,
-            color = cornerColor
+                .padding(start = width * 0.07f, top = width * 0.05f)
         )
-        PurinText(
-            text = label,
+        PixelLabel(
+            value = card.value,
+            cell = cell,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = width * 0.1f, bottom = width * 0.05f)
-                .rotate(180f),
-            size = (width.value * 0.17f).sp,
-            weight = FontWeight.Bold,
-            color = cornerColor
+                .padding(end = width * 0.07f, bottom = width * 0.05f)
+                .rotate(180f)
         )
     }
 }
@@ -163,17 +147,21 @@ fun CardBack(
         Box(
             modifier = Modifier
                 .size(width * 0.74f, width * 1.12f)
-                .rotate(-24f)
+                .rotate(28f)
                 .clip(RoundedCornerShape(50))
                 .background(PurinColors.Butter)
         )
         if (width >= 40.dp) {
-            PurinText(
-                text = "UNO",
-                size = (width.value * 0.22f).sp,
-                weight = FontWeight.Black,
-                color = PurinColors.Brown
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                PurinCharacter(size = width * 0.56f)
+                Spacer(Modifier.height(width * 0.02f))
+                PurinText(
+                    text = "UNO",
+                    size = (width.value * 0.17f).sp,
+                    weight = FontWeight.Black,
+                    color = PurinColors.Brown
+                )
+            }
         }
     }
 }
@@ -184,22 +172,4 @@ fun CardColor.toColor(): Color = when (this) {
     CardColor.BLUE -> PurinColors.Blue
     CardColor.YELLOW -> PurinColors.Gold
     CardColor.WILD -> PurinColors.Wild
-}
-
-private fun CardValue.label(): String = when (this) {
-    CardValue.ZERO -> "0"
-    CardValue.ONE -> "1"
-    CardValue.TWO -> "2"
-    CardValue.THREE -> "3"
-    CardValue.FOUR -> "4"
-    CardValue.FIVE -> "5"
-    CardValue.SIX -> "6"
-    CardValue.SEVEN -> "7"
-    CardValue.EIGHT -> "8"
-    CardValue.NINE -> "9"
-    CardValue.SKIP -> "⊘"
-    CardValue.REVERSE -> "⇄"
-    CardValue.DRAW_TWO -> "+2"
-    CardValue.WILD -> "★"
-    CardValue.WILD_DRAW_FOUR -> "+4"
 }

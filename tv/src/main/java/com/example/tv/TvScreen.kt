@@ -281,24 +281,16 @@ private fun PlayerTile(
                 color = if (isTurn) PurinColors.Brown else PurinColors.CreamDark,
                 shape = shape
             )
-            .padding(vertical = 14.dp, horizontal = 8.dp),
+            .padding(vertical = 16.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        PlayerAvatar(name = player.name, color = color, size = 56.dp, highlighted = isTurn)
-        Spacer(Modifier.height(8.dp))
-        PurinText(player.name, size = 20.sp, weight = FontWeight.Bold, maxLines = 1)
-        Spacer(Modifier.height(6.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            CardBack(width = 26.dp)
-            PurinText("× ${player.cardCount}", size = 20.sp, weight = FontWeight.Black)
-        }
+        PlayerAvatar(name = player.name, color = color, size = 64.dp, highlighted = isTurn)
+        Spacer(Modifier.height(10.dp))
+        PurinText(player.name, size = 22.sp, weight = FontWeight.Bold, maxLines = 1)
         Spacer(Modifier.height(6.dp))
         PurinText(
             text = if (isTurn) "Jugando…" else " ",
-            size = 16.sp,
+            size = 18.sp,
             weight = FontWeight.Bold,
             color = PurinColors.Brown
         )
