@@ -26,3 +26,4 @@ rootProject.name = "Uno"
 include(":app")
 include(":tv")
 include(":common")
+include(":protocol")
